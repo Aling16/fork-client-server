@@ -39,6 +39,13 @@ void log_write(int lvl, const char *file, int line, const char *fmt, ...)
   #define LOG_DBG(fmt, ...) log_write(2, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #else
   #define LOG_DBG(fmt, ...) ((void)0)
+
+/* 閒置逾時秒數，可用 make IDLE_TIMEOUT=N 覆蓋 */
+#ifndef IDLE_TIMEOUT_SEC
+#define IDLE_TIMEOUT_SEC 10
+
+#endif
+
 #endif
 
 #endif

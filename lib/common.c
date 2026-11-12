@@ -66,7 +66,12 @@ int recv_msg(int fd, msg_hdr_t *hdr, char *payload, size_t cap)
     uint32_t len = ntohl(hdr->len);
     hdr->len = len;
     LOG_DBG("recv_msg cmd=%.*s len=%u", CMD_LEN, hdr->cmd, len);
-    if (len > cap) return -2;                         /* 長度不合理：協定錯誤 */
+
+    #ifdef ROBUST
+        if (len > cap) return -2;      /* 機制 3：驗證長度欄位 */
+    #else
+        (void)cap;                     /* 無防護版本：刻意不檢查，避免 unused 警告 */
+    #endif
 
     if (len > 0) {
         r = recv_all(fd, payload, len);

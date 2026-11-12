@@ -1,9 +1,15 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -Iinclude
 
-DEBUG ?= 0
+DEBUG        ?= 0
+ROBUST       ?= 1
+IDLE_TIMEOUT ?= 10
+
 ifeq ($(DEBUG),1)
   CFLAGS += -DDEBUG -g
+endif
+ifeq ($(ROBUST),1)
+  CFLAGS += -DROBUST -DIDLE_TIMEOUT_SEC=$(IDLE_TIMEOUT)
 endif
 
 all: libcommon.so server client
