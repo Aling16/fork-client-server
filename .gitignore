@@ -1,0 +1,13 @@
+# build outputs
+server
+client
+*.so
+*.o
+
+# captures (只忽略根目錄的暫存檔，report/ 內的 pcap 會保留)
+/*.pcap
+
+# editor / OS
+*~
+*.swp
+.vscode/
