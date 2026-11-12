@@ -1,6 +1,11 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -Iinclude
 
+DEBUG ?= 0
+ifeq ($(DEBUG),1)
+  CFLAGS += -DDEBUG -g
+endif
+
 all: libcommon.so server client
 
 libcommon.so: lib/common.c include/common.h

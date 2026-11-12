@@ -26,4 +26,19 @@ int recv_msg(int fd, msg_hdr_t *hdr, char *payload, size_t cap);
 /* 取得系統資訊並格式化成文字，成功回傳 0，失敗回傳 -1 */
 int get_sysinfo(char *buf, size_t cap);
 
+/* ===== log 控制 ===== */
+void log_set_level(int lvl);
+void log_init_from_env(void);
+void log_write(int lvl, const char *file, int line, const char *fmt, ...)
+    __attribute__((format(printf, 4, 5)));
+
+#define LOG_ERR(fmt, ...)  log_write(0, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define LOG_INFO(fmt, ...) log_write(1, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+
+#ifdef DEBUG   /* 編譯期開關：沒定義 DEBUG 時，LOG_DBG 完全不產生程式碼 */
+  #define LOG_DBG(fmt, ...) log_write(2, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#else
+  #define LOG_DBG(fmt, ...) ((void)0)
+#endif
+
 #endif

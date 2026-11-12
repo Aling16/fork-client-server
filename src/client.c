@@ -9,8 +9,16 @@
 
 int main(int argc, char **argv)
 {
-    const char *host = (argc > 1) ? argv[1] : "127.0.0.1";
-    int port         = (argc > 2) ? atoi(argv[2]) : 8888;
+    int verbose = 0, opt;
+    log_init_from_env();
+    while ((opt = getopt(argc, argv, "v")) != -1) {
+        if (opt == 'v') verbose++;
+        else { fprintf(stderr, "usage: %s [-v|-vv] [host] [port]\n", argv[0]); return 1; }
+    }
+    if (verbose > 0) log_set_level(verbose);
+
+    const char *host = (optind < argc)     ? argv[optind]       : "127.0.0.1";
+    int port         = (optind + 1 < argc) ? atoi(argv[optind+1]) : 8888;
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) { perror("socket"); return 1; }

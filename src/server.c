@@ -33,6 +33,10 @@ static void handle_client(int fd)
         memcpy(cmd, hdr.cmd, CMD_LEN);
         cmd[CMD_LEN] = '\0';
 
+
+	/* 新增：記錄 Server 收到的指令 */
+	LOG_DBG("dispatch cmd='%s' len=%u", cmd, hdr.len);
+
         if (strcmp(cmd, "ECHO") == 0) {
             send_msg(fd, "OK", buf, hdr.len);
         }else if (strcmp(cmd, "SYSINFO") == 0) {
@@ -58,7 +62,20 @@ static void handle_client(int fd)
 
 int main(int argc, char **argv)
 {
-    int port = (argc > 1) ? atoi(argv[1]) : 8888;
+    int port = 8888, verbose = 0, opt;
+
+    log_init_from_env();                          /* 先讀環境變數 */
+    while ((opt = getopt(argc, argv, "p:v")) != -1) {
+        switch (opt) {
+        case 'p': port = atoi(optarg); break;
+        case 'v': verbose++;           break;     /* -vv 會累加成 2 */
+        default:
+            fprintf(stderr, "usage: %s [-v|-vv] [-p port | port]\n", argv[0]);
+            return 1;
+        }
+    }
+    if (optind < argc) port = atoi(argv[optind]); /* 相容舊的 ./server 8888 */
+    if (verbose > 0) log_set_level(verbose);      /* 命令列優先於環境變數 */
 
     /* 安裝 SIGCHLD 處理函式 */
     struct sigaction sa;
@@ -95,21 +112,28 @@ int main(int argc, char **argv)
 
         pid_t pid = fork();
         if (pid < 0) {                        /* fork 失敗：關掉連線，繼續服務其他人 */
-            perror("fork");
+            LOG_ERR("fork failed: %s", strerror(errno));
             close(cfd);
             continue;
         }
 
-        if (pid == 0) {
-            /* ===== 子行程 ===== */
-            close(lfd);                       /* 子行程不需要 listen socket */
-            printf("[child %d] client %s:%d connected\n",
-                   getpid(), inet_ntoa(cli.sin_addr), ntohs(cli.sin_port));
-            handle_client(cfd);
-            close(cfd);
-            printf("[child %d] client disconnected\n", getpid());
-            _exit(0);                         /* 用 _exit，避免重複沖刷父行程的 stdio 緩衝 */
-        }
+
+	if (pid == 0) {
+    	/* ===== 子行程 ===== */
+    	    close(lfd);
+
+	    LOG_INFO("client %s:%d connected",
+	             inet_ntoa(cli.sin_addr),
+	             ntohs(cli.sin_port));
+
+	    handle_client(cfd);
+	    close(cfd);
+
+	    LOG_INFO("client disconnected");
+
+	    _exit(0);
+	}
+
 
         /* ===== 父行程 ===== */
         close(cfd);                           /* 連線交給子行程，父行程一定要關 */

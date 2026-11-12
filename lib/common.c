@@ -1,3 +1,5 @@
+#include <stdarg.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
@@ -46,6 +48,7 @@ ssize_t recv_all(int fd, void *buf, size_t n)
 int send_msg(int fd, const char *cmd, const void *payload, uint32_t len)
 {
     msg_hdr_t h;
+    LOG_DBG("send_msg cmd=%s len=%u", cmd, len);
     memset(&h, 0, sizeof(h));
     strncpy(h.cmd, cmd, CMD_LEN - 1);
     h.len = htonl(len);
@@ -62,6 +65,7 @@ int recv_msg(int fd, msg_hdr_t *hdr, char *payload, size_t cap)
 
     uint32_t len = ntohl(hdr->len);
     hdr->len = len;
+    LOG_DBG("recv_msg cmd=%.*s len=%u", CMD_LEN, hdr->cmd, len);
     if (len > cap) return -2;                         /* 長度不合理：協定錯誤 */
 
     if (len > 0) {
@@ -107,4 +111,33 @@ int get_sysinfo(char *buf, size_t cap)
         tbuf, getpid());
 
     return (n < 0 || (size_t)n >= cap) ? -1 : 0;
+}
+
+/* ===== log ===== */
+static int g_log_level = 0;       /* 0=只有錯誤 1=info 2=debug */
+
+void log_set_level(int lvl)
+{
+    if (lvl < 0) lvl = 0;
+    if (lvl > 2) lvl = 2;
+    g_log_level = lvl;
+}
+
+void log_init_from_env(void)
+{
+    const char *e = getenv("LOG_LEVEL");
+    if (e) log_set_level(atoi(e));
+}
+
+void log_write(int lvl, const char *file, int line, const char *fmt, ...)
+{
+    if (lvl > g_log_level) return;            /* 執行期過濾 */
+    static const char *tag[] = { "ERR", "INF", "DBG" };
+
+    fprintf(stderr, "[%s pid=%d %s:%d] ", tag[lvl], getpid(), file, line);
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    fputc('\n', stderr);
 }
